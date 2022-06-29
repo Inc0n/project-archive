@@ -1,0 +1,41 @@
+oauth
+
+|------------------------+----------------------------------|
+| param key              | val                              |
+|------------------------+----------------------------------|
+| oauth_consumer_key     | audiomack-js                     |
+| oauth_signature_method | HMAC-SHA1                        |
+| oauth_timestamp        | 1603218158                       |
+| oauth_version          | 1.0                              |
+|------------------------+----------------------------------|
+| oauth_nonce            | bSBnJZSoAnurSWTfjoPgBAbHlJ8PIXRC |
+| oauth_signature        | 8NmYNj4aMGUzU/6eP+QnWZVcS3w=     |
+
+from all the oauth parameters the unknown (changing) ones ared grouped in the bottom of the table, the top group are either constant or can be computed (oauth_timestamp) at runtime.
+
+* Searching signatures
+autosuggest for "爱存在1"
+| oauth_timestamp | 1603218678                       |
+| oauth_nonce     | uGrXDn7Iv1tqfIIYlKWGUkDCQxxL1nPq |
+| oauth_signature | BHwM5uekgW3ss9DNsNXXFCtXVi8=     |
+
+autosuggest for "爱存在2"
+| oauth_timestamp | 1603218862                       |
+| oauth_nonce     | OIAmGMsAV7jpFDurzz3tLLvokrgQ4wZ9 |
+| oauth_signature | Dwt8xoALlDhNW/mX86f44SZegoo=     |
+
+when searching "爱存在2"
+| oauth_timestamp | 1603218862                       |
+| oauth_nonce     | 14BrhhhqLo8A3ar1dATHNhYBZ1yjWGg4 |
+| oauth_signature | W3osvu2VM4Lk9xuzuitNVWzKRjc=     |
+
+from the above samples collect, I had a hunch that timestamp could be used to generate the nonce,
+
+** what's the relation between the 3 variables
+*** from the doc
+#+BEGIN_QUOTE
+The Consumer SHALL then generate a Nonce value that is unique for all requests with that timestamp.
+A nonce is a random string, uniquely generated for each request.
+#+END_QUOTE
+It's quite clear that the nonce is generated from the timestamp.
+The next step is to found that algorithm in between the generation.

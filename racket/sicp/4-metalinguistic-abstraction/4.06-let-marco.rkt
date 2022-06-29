@@ -1,0 +1,23 @@
+
+(define (let? exp) (tagged-list? exp 'let))
+(define (let-bindings exp) (cadr exp))
+(define (let-clauses exp) (cddr exp))
+
+(define (let->lambda exp)
+  (define (expand-clauses bindings clauses)
+    ;; (cons `(lambda ,(map get-var bindings)
+    ;;          ,clauses)
+    ;;       (map get-value bindings))
+    (define (get-var binding)
+      (cond ((variable? binding) binding)
+            ((pair? binding) (car binding))
+            (else (error "invalid binding form: LET->LAMBDA"
+                         binding))))
+    (define (get-value binding)
+      (cond ((pair? binding) (cadr binding))
+            (else false)))
+    (cons (make-lambda (map get-var bindings)
+                       clauses)
+          (map get-value bindings)))
+  (expand-clauses (let-bindings exp) (let-clauses exp)))
+

@@ -1,0 +1,22 @@
+
+(define (make-point x y)
+  (cons x y))
+(define (point-x p)
+  (car p))
+(define (point-y p)
+  (cdr p))
+
+(define (make-segment p1 p2)
+  (cons p1 p2))
+(define (segment-start seg)
+  (car p))
+(define (segment-end seg)
+  (cdr p))
+
+(define (midpoint-segment seg)
+  (let ((start (segment-start seg))
+        (end (segment-end seg))
+        (mid (lambda (i1 i2)
+                 (/ (+ i1 i2) 2))))
+    (make-point (mid (point-x start) (point-x end))
+                (mid (point-y start) (point-y end)))))

@@ -1,0 +1,29 @@
+(gerbil-build-deps-v2:
+ (parser/utils
+  "utils"
+  (gerbil/core std/misc/func std/misc/list std/srfi/1 std/sugar))
+ (parser/stream "stream" (gerbil/core std/misc/number std/sugar))
+ (parser/lexer
+  "lexer"
+  (gerbil/core
+   parser/stream
+   parser/utils
+   std/misc/func
+   std/misc/list
+   std/misc/ports
+   std/pregexp
+   std/srfi/143
+   std/sugar))
+ (parser/parser-stream "parser-stream" (gerbil/core))
+ (parser/parser
+  "parser"
+  (gerbil/core
+   parser/lexer
+   parser/parser-stream
+   parser/utils
+   std/misc/func
+   std/misc/list
+   std/misc/ports
+   std/srfi/143
+   std/sugar)))
+

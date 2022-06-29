@@ -1,0 +1,4 @@
+(gerbil-build-deps-v2:
+ (utils/list "list" (gerbil/core))
+ (utils/hash-struct "hash-struct" (gerbil/core)))
+

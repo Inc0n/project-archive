@@ -1,0 +1,13 @@
+
+
+* spec
+single instruction multi-cycle
+
+** registers 
+| register | name  |                                  |
+| r0       | $zero | always 0                         |
+| r1       | $at   | reserved for pseudo-instructions |
+| r2-r3    |       |                                  |
+
+* showcase program 
+calculate the squares of all integers between 0 and 99. as efficiently as possible

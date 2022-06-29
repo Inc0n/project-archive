@@ -1,0 +1,3 @@
+[submodule "games/lua/LuaLisp"]
+	path = games/lua/LuaLisp
+	url = https://github.com/middlefeng/LuaLisp

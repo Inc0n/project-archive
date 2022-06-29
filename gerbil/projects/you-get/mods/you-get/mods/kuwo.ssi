@@ -1,0 +1,21 @@
+prelude: :gerbil/core
+package: you-get/mods
+namespace: you-get/mods/kuwo
+
+(%#begin (%#import :std/format)
+         (%#import :std/pregexp)
+         (%#import :std/net/request)
+         (%#import :you-get/utils)
+         (%#import :you-get/you-get)
+         (%#define-runtime match-grouped1 you-get/mods/kuwo#match-grouped1)
+         (%#define-runtime download you-get/mods/kuwo#download)
+         (%#define-runtime
+          kuwo-song-detail-url
+          you-get/mods/kuwo#kuwo-song-detail-url)
+         (%#define-runtime
+          kuwo-song-url-url
+          you-get/mods/kuwo#kuwo-song-url-url)
+         (%#define-runtime
+          kuwo-download-by-rid!
+          you-get/mods/kuwo#kuwo-download-by-rid!))
+(%#call (%#ref _gx#load-module) (%#quote "you-get/mods/kuwo__0"))

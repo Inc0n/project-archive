@@ -1,0 +1,6 @@
+(gerbil-build-deps-v2:
+ (parser/stream "stream" (gerbil/core std/misc/number std/sugar))
+ (parser/parser
+  "parser"
+  (gerbil/core parser/stream std/misc/list std/misc/ports std/sugar)))
+

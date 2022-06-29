@@ -1,0 +1,22 @@
+(gerbil-build-deps-v2:
+ (org-parser/utils "utils" (gerbil/core std/misc/list))
+ (org-parser/lexer
+  "lexer"
+  (gerbil/core
+   org-parser/utils
+   std/format
+   std/misc/func
+   std/misc/ports
+   std/misc/repr
+   std/pregexp
+   std/sugar))
+ (org-parser/parser
+  "parser"
+  (gerbil/core org-parser/lexer org-parser/utils std/misc/ports))
+ (org-parser/format
+  "format"
+  (gerbil/core org-parser/utils std/misc/func std/misc/list std/sugar))
+ (org-parser/to-html
+  "to-html"
+  (gerbil/core org-parser/format org-parser/parser org-parser/utils)))
+

@@ -1,0 +1,10 @@
+
+(define (adjoin-set x set)
+  (define (iter set acc)
+    (cond ((null? set) (reverse (cons x acc)))
+          ((= x (car set))
+           (append (reverse acc) set))
+          ((< x (car set))
+           (append (reverse acc) (cons x set)))
+        (else (iter (cdr set) (cons (car set) acc)))))
+  (iter set '()))

@@ -1,0 +1,12 @@
+\BOOKMARK [1][-]{section.1}{Background}{}% 1
+\BOOKMARK [2][-]{subsection.1.1}{Read up on threads and mutexes}{section.1}% 2
+\BOOKMARK [1][-]{section.2}{Implementation}{}% 3
+\BOOKMARK [2][-]{subsection.2.1}{The GUI send and receive windows + Project general structure}{section.2}% 4
+\BOOKMARK [2][-]{subsection.2.2}{Serialize and deserialize drawing-commands}{section.2}% 5
+\BOOKMARK [3][-]{subsubsection.2.2.1}{serialize commands}{subsection.2.2}% 6
+\BOOKMARK [3][-]{subsubsection.2.2.2}{use serialize for communication}{subsection.2.2}% 7
+\BOOKMARK [2][-]{subsection.2.3}{Implement send and receive threads}{section.2}% 8
+\BOOKMARK [2][-]{subsection.2.4}{Implement your communication protocol using booleans}{section.2}% 9
+\BOOKMARK [1][-]{section.3}{Bug fixes \046 Enhancements}{}% 10
+\BOOKMARK [2][-]{subsection.3.1}{Implement send threading and queue}{section.3}% 11
+\BOOKMARK [2][-]{subsection.3.2}{Make your communication protocol more robust}{section.3}% 12

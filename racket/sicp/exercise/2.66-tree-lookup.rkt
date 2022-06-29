@@ -1,0 +1,36 @@
+
+(define (make-record key value)
+  (list key value))
+
+(define (record-key record) (car record))
+(define (record-value record) (cadr record))
+
+(define (tree-= tree1 tree2)
+  (= (entry tree1) (entry tree2)))
+(define (tree-< tree1 tree2)
+  (< (entry tree1) (entry tree2)))
+
+(define (adjoin-set x set)
+  (cond ((null? set) (make-tree x '() '()))
+        ((= (record-key x) (record-key (entry set)))
+         (make-tree x
+                    (left-branch tree)
+                    (right-branch tree)))
+        ((< (record-key x) (record-key (entry set)))
+         (make-tree (entry set)
+                    (adjoin-set x (left-branch set))
+                    (right-branch set)))
+        ((> (record-key x) (record-key (entry set)))
+         (make-tree (entry set)
+                    (left-branch set)
+                    (adjoin-set x (right-branch set))))))
+
+(define (lookup given-key set-of-records)
+  (let ((entry-key (record-key (entry set-of-records))))
+    (cond ((null? set-of-records) false)
+          ((symbol=? given-key entry-key)
+           (entry set-of-records))
+          ((symbol<? given-key entry-key)
+           (loopup given-key (left-branch set-of-records)))
+          (else ;; (> (record-key x) (record-key (entry set)))
+           (lookup given-key (right-branch set-of-records))))))

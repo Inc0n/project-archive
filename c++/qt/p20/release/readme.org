@@ -1,0 +1,19 @@
+
+This program has only been tested on linux.
+
+* To compile
+The following commands should be run in the terminal, from the root directory of the project.
+
+#+begin_src bash
+qmake
+make
+#+end_src
+
+* To run
+from the root directory, execute the following.
+
+#+begin_src bash
+./gui-bitstream/debug/gui
+#+end_src
+
+The binary can be run from any directory, but will be missing a few assets if not run from the root directory, as the assets are located in directory `assets`.

@@ -1,0 +1,220 @@
+#+LATEX_CLASS: report
+#+LATEX_CLASS_OPTIONS: [a4paper,11pt,twoside,twocolumn]
+
+* Background and design
+** 1 Read up on threads and mutexes
+   You will need to use multiple threads in your client/server to respond to window events (the main thread) as well as handling sending and receiving data. You should therefore:
+   * Read up on threads and the pthreads/qthreads library.
+   * Read about race conditions and how to use locks/mutexes to make a collection “thread-safe”.
+     Threading is a technique used to enable developers to have software level parallism at their desposal. Multi-core is similar to multi-threading in the sense of multi-tasking and parallism, but in hardware. A single-core CPU can still have some level multi-tasking, by saving current states of execution and load a saved state of another program for its execution.
+     Using threads means the danger of introducing race-conditon into the equation. This also refers back to when we leant interrupts in elec1200, where current execution halts and execute the code in the interrupts, this will be an issue if the instruction, which the program halts at was a 16-bit one, was updating data that is shared with the interrupts.
+     This issue can be resolved by using mutex with care. Avoid casuing deadlocks and other issues while making the program thread-safe.
+** 2 Design your application
+   Your application will have a “send” window that allows the user to draw on it (by catching mouse and/or keyboard events) and a “receive” window that will display drawings coming from the other user as they are being drawn. This drawing must at least involve drawing line diagrams and clearing the screen. To implement this functionality you must design several aspects (or layers) of your application, and therefore must answer the following questions:
+
+   * How will you represent the drawing commands so that they can be sent to the other user whilst they are being drawn?
+   * How will you serialize these commands into packets to be sent from the send window?
+
+   * How will you convert binary packets into a stream of 1’s and 0’s?
+* Implementation
+    In your application you will simply display in the receive-window what is being drawn in the send-window. This will allow you to test your application one layer at a time, until when all the layers are working.
+    It is recommended to start with the GUI/application layer and then move down to the physical layer, rather than the other way around. This can be done using the following steps. In your report, you are expected to explain how you implemented the following steps and include screenshots for your implementation.
+
+** 1 The GUI send and receive windows – 8 marks
+   - Questions
+      * How will the send-window allow users to draw diagrams?
+      * How will it display diagrams as they are being drawn, and how will it retain these diagrams so that they don’t disappear when the window is repainted?
+   - Make a Qt application with two windows (or two parts of the same window), one send/local window that the user draws on, and another receive/remote window that displays the diagram coming from the other user.
+   - Implement various “drawing command” classes for the different drawing actions you support (at least line drawing and screen clearing).
+   - Make your send window respond to mouse/keyboard events, create these commands, and display them locally so that they don’t disappear when the window is repainted.
+   - Pass these commands to the receive window when they are created, and make the receive window display them, so that they don’t disappear when it is repainted.
+
+   #+CAPTION: receive and send windows
+   #+LABEL: fig:recv_n_send_wins
+   #+ATTR_LATEX: width=\textwidth
+   [[./report/windows.png]]
+
+   #+CAPTION: showcasing all the drawing commands
+   #+LABEL: fig:show_all_draws
+   #+ATTR_LATEX: width=\columnwidth
+   [[./report/show_all_draw.png]]
+   
+
+   #+begin_src c++
+enum ScribbleMode
+{
+    cursor = 1, // disable custom draw event
+    undo,
+    //
+    raw_line, // draw line from each mouse move
+    smooth_line, // draw raw_line, but replace it with smooth line
+    straight_line, // draw a line from start to end
+    circle,
+    rectangle,
+    //
+};
+   #+end_src
+
+   #+CAPTION: program design
+   #+LABEL: fig:program_design
+   #+ATTR_LATEX: width=\columnwidth
+   [[./report/program-design.png]]
+
+
+
+** STARTED 2 Serialize and deserialize drawing-commands – 5 marks
+   Write  code  that  serializes  (i.e.,  transforms  into  binary  form  like  arrays  of  chars)  these commands, and deserializes them. 
+   Change the send and receive windows so that commands are serialized and deserialized when passed from send to receive.
+*** serialize commands
+    #+begin_src c++
+enum ScribbleMode
+{
+    cursor = 1, // disable custom draw event
+    undo,
+    //
+    raw_line, // draw line from each mouse move
+    smooth_line, // draw raw_line, but replace it with smooth line
+    straight_line, // draw a line from start to end
+    circle,
+    rectangle,
+    //
+};
+    #+end_src
+    Cursor and undo are special commands, i.e they are not drawing commands.
+    Cursor is very special in that sense, because it's the only mode that will not be transmited.
+    Undo is the only commands that has no other information transmitted.
+    The most important modes are the lines, circle and rectangle.
+    In our choosen way of representing the drawing board. Besides the raw_line mode, all the rest of the modes (straight_line, circle, rectangle), can have their shape defined with two points. This is very handy, because now we can define an unform interface / data-structure to represent this information:
+    #+begin_src c++
+struct DrawCmd {
+    uint mode;
+    QPointF p1;
+    QPointF p2;
+}
+
+struct QPointF {
+    // a pseudo implementation for demonstration purposes
+    qreal x;
+    qreal y;
+    ...
+}
+    #+end_src
+    Note that QPointF is a type part of the Qt framework, the implementation here is to illustrated its interior structure for the serialization process, it may not be the actual implementation.
+    #+begin_src c++
+struct toBeSerialized {
+    uint mode,
+    qreal x1;
+    qreal y1;
+    qreal x2;
+    qreal y2;
+}
+    #+end_src
+    Each drawing command will be serialized in the sequence as shown in the snippet above.
+    uint is of size 1 byte. 'qreal' is a Qt type which can be double or float, by default it is double. It's size doesn't not matter too much, however, because we can use sizeof operator to determine the actual size in byte. 
+    This design is not sustainable, however, if we want to implement feature such as moving a drawn figure, extra fields(bytes) will be required to introduced.
+    For serialization, I implemented the following interfacing methods
+    #+begin_src c++
+struct DrawCmd {
+    ...
+    DrawCmd(byte_t *data) { /* deserialize */ }
+    // the total size will be pass out into pointer size
+    byte_t* serialize(uint *size) {  /* deserialize */ }
+}
+    #+end_src
+    To serialize DrawCmd, I first allocated the memory required for data using malloc.
+    Then I used memcpy to copy the right data into the right address space. I am able to do this, because every data are actually just numbers, for example, a float number is a 4 bytes number that is interpreted as a float.
+    Similarly, for deserialization, I use memcpy to copy from the data into each of the fields.
+    Finally, to help aiding the development of my serialization interface I used a Qt test library.
+    #+begin_src c++
+./unitTests/unitTests.pro
+// new project for unit testing
+QT += testlib
+... // bit more stuff
+
+./unitTests/test.cpp // unit testing implementation
+void testSerialization() {
+        DrawCmd cmd(QPointF(0.2, 0.3), QPointF(0.2, 0.4));
+        //
+        uint size = 0;
+        byte_t* data = cmd.serialize(&size);
+
+        DrawCmd deserialized = DrawCmd(data);
+
+        // testing code ommited
+        ...
+        //
+        free(data);
+    }
+    #+end_src
+    The results are reassuring
+    #+begin_src c++
+********* Start testing of MyFirstTest *********
+          Config: Using QtTest library 5.14.2, Qt 5.14.2 (x86_64-little_endian-lp64 shared (dynamic) release build; by GCC 9.3.0)
+          PASS   : MyFirstTest::initTestCase()
+          PASS   : MyFirstTest::testVectorSerialization()
+          PASS   : MyFirstTest::testSerialization()
+          QDEBUG : MyFirstTest::cleanupTestCase() Called after myFirstTest and mySecondTest.
+          PASS   : MyFirstTest::cleanupTestCase()
+          Totals: 4 passed, 0 failed, 0 skipped, 0 blacklisted, 0ms
+********* Finished testing of MyFirstTest *********
+          #+end_src
+*** TODO use serialize for communication
+    #+begin_src c++
+void MainWindow::onNewDiagramDrawn(DrawCmd cmd) {
+    uint size = 0;
+    byte_t* data = cmd.serialize(&size);
+    bitsock->sendData(data, size);
+    printf("sent: \n");
+}
+
+void MainWindow::onDataReceived(Bytes_t data)
+{
+    DrawCmd cmd(data.data());
+    printf("Receivded: \n");
+    cmd.print();
+    QGraphicsItem *item = this->scribbleArea->applyNewDrawCmd(cmd);
+    items.push_back(item);
+}
+    #+end_src
+
+** 3 Implement send and receive-threads – 7 marks
+   - Questions
+      * How will you use threads to send and receive these packets, while the rest of the application keeps running?
+      * How will you use mutexes to make any relevant collections “thread-safe”?
+   - Implement send and receive threads, where the send thread takes serialized commands and will send these, while the receive thread will read data and pass them to the receive window. For now, just test this by passing serialized commands using a queue. You may want to implement a thread-safe queue template class to do this.
+** 4 Implement your communication protocol using booleans – 10 marks
+   In your report, you are expected to explain how your communication protocol works, for example detailing what signalling you are implementing between the send and receive windows and how data is exchanged. In the report, you can illustrate your code using pseudocodes or flowcharts.  Implement and test your bit-stream communication protocol, by toggling shared Boolean variables, which are emulating the role of GPIO pins if you are communicating between two different Pis. Remember you need to think about how to signal when a bit is ready to read, and when it has been read.  Hint: You may need to use mutexes to avoid race conditions.
+   - questions
+     * How will you transmit this stream in a reliable way? For example, you may need to signal when a bit is ready to be read, and when the receive window has finished reading the current bit.
+     * How will you receive and buffer packets at the other end?
+     * How will you deserialize them?
+     * How will you draw them on the receive window?
+     * How will you retain the currently received diagram so that when the window is repainted the diagram isn’t lost?
+* Optional Additional Work
+  Marks will only be awarded for this section if you have already completed all of Section 3 to an excellent standard and with excellent understanding.
+  * Implement more drawing features and commands, e.g., colours, text etc.
+  * Make your communication protocol more robust, which may involve:
+    - Using parity/check-sums.
+    - Use proper handshaking so that whole commands/packets are not discarded until they have been acknowledged by the receiver, and so that resends are attempted when data is lost
+
+* data rate
+timings are in LOG.txt
+
+0x3 0 0 0 0 0 0xffffff80 0x45 0x40 0 0 0 0 0 0xffffffe0 0x62 0x40 0 0 0 0 0 0xffffff80 0x44 0x40 0 0 0 0 0 0xffffffe0 0x62 0x40 0 0 0 0 0 => 38 of i8
+;; average entries nano-to-micro
+(/ 88628882 77 1000.0) = 1151 us = 1.15 ms
+(/ 38.0 1.151) = 33.01 kb/s
+
+Received: {0x3 0 0 0 0 0 0xffffffc0 0x53 0xffffffc0 0 0 0 0 0 0xffffffe0 0x61 0xffffffc0 0 0 0 0 0 0xffffff80 0x50 0xffffffc0 0 0 0 0 0 0xffffffc0 0x63 0xffffffc0 0 0 0 0} => 37 bytes + 1 size byte = 38 bytes of i8
+
+#+begin_src bash
+total=0;
+count=0;
+while read line; do
+   total=$(($total+$line));
+   count=$(($count+1));
+done< <(cat LOG.txt);
+echo $total $count;
+#+end_src
+(/ 119398891 125 1000.0) = 955.19 us
+(/ 38.0 0.95519) = 39.78 kb/s

@@ -1,0 +1,111 @@
+
+* gebril build
+  ./configure --enable-libxml --enable-libyaml --enable-lmdb --enable-zlib
+  make
+* gambit build
+  ./configure --prefix=/usr/local/gambit \
+  --enable-single-host \
+  --enable-multiple-versions \
+  --enable-shared \
+  --enable-openssl \
+  --enable-poll
+  --enable-default-runtime-options=f8,-8,t8 \
+
+* class
+  let's say the following class is defined for all of the examples
+  #+begin_src gerbil
+(defclass example (slot-1))
+  #+end_src
+** define
+   #+begin_src gerbil
+   (defclass <class-name> (<slot-name> ...)
+   <keyword-options>
+   ...)
+   #+end_src
+** slot getter
+*** (@ <instance> <slot-name>)
+    (@ self slot-1)
+*** (<class-name>-<slot-name> <instance>)
+    (example-slot-1 self)
+** slot setter
+*** macro (@ <instance> <slot-name> <val>)
+    (@ self slot-1 'dummy-val)
+*** (slot-set! <instance> '<slot-name> <val>)
+    (slot-set! self 'slot-1 'dummy-val)
+
+** methods
+   #+begin_src gerbil
+(defmethod {<method-name> <class-name>}
+(lambda (self ...other-args)
+body
+...))
+   #+end_src
+* (pattern) match
+* string
+  #+begin_src gerbil
+#<<EOF
+"I am a quoted string!!!" says me. $hell anyone?
+EOF
+  #+end_src
+
+* namespace & packages
+  library-name#unexported-function
+
+* format
+** LACK iteration
+   (format "~{~a, ~}" '(0 1 2 3))
+   expects: "0, 1, 2, 3, "
+
+* module
+  #+begin_src gerbil
+(define-library (drewc gerbil-swank)
+(export start-swank swank:*handlers* swank:define-slime-handler register-slime-handler!
+swank:lookup-presented-object swank:lookup-presented-object-or-lose
+repl-result-history-ref)
+(import (scheme base) (scheme file) (scheme write) (scheme read) (scheme eval) (scheme repl) (scheme process-context)  (scheme cxr) (scheme char)
+(std srfi |13|) (std srfi |1|)
+(only (gerbil/gambit) open-tcp-server pp random-integer table?)
+(only (gerbil/core) hash-ref hash-put! hash-for-each hash-length
+make-hash-table exit  hash->list filter hash-remove!
+values->list ;; values->list should go when let-values works
+) 
+(only (gerbil/expander) module-context? module-context-ns expander-context-id expander-context-table current-expander-module-registry)
+(only (gerbil/gambit/exceptions) display-exception)
+(drewc gerbil-swank swank)
+(drewc gerbil-swank core))
+(include "specific/gerbil.scm")
+(include "common/base.scm")
+(include "common/handlers.scm"))
+  #+end_src
+
+  Even though I dislike it, it's used and works :D
+
+  #+begin_src gerbil
+prelude: :gerbil/core
+(import (rename-in :gerbil/core (load gerbil-load))
+:std/sugar :std/generic :gerbil/expander/module <expander-runtime> )
+(export load)
+
+(def (load thing . _)
+(def (mod? c)
+(and (syntax-error? c)
+(equal? (error-message c) "Bad syntax; illegal context")))
+(try
+(gerbil-load thing)
+(catch (mod? c) (eval `(begin (import-module ,thing #t #t) (import ,thing))))))
+  #+end_src
+
+  Drew Crampsie
+  @drewc
+  Sep 18 18:02
+  That's what r7rs see's as (drewc gerbil-swank core) and gerbil knows as :drewc/gerbil-swank/core and is in the expander module registry as drewc/gerbil-swank/core and also possibly "/home/drewc/src/drewc-r7rs-swank/gerbil-build/core.ss"or even the library .ssi.
+  #+begin_src gerbil
+(user)> (gx#import-module 'drewc/gerbil-swank/core)
+#<module-context #134>
+(user)> (expander-module-path #)
+"/home/drewc/.gerbil/lib/drewc/gerbil-swank/core.ssi"
+(user)> (gx#import-module #)
+#<module-context #134>
+(user)> (eq? # ###)
+#t
+  #+end_src

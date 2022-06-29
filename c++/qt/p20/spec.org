@@ -1,0 +1,159 @@
+
+* serialization
+** tags
+*** tag-type  
+raw-line, smooth_line, straight_line, circle, rectangle
+*** tag-data
+QPoint p1,
+QPoint p2
+
+** events
+data start collection onMouseMoveEvent
+data continue collection onMouseMoveEvent
+data end collection onMouseMoveEvent
+* 2 Background and design
+** 2.1 Read up on threads and mutexes
+You will need to use multiple threads in your client/server to respond to window events (the main thread) as well as handling sending and receiving data. You should therefore:
+* Read up on threads and the pthreads/qthreads library.
+* Read about race conditions and how to use locks/mutexes to make a collection “thread-safe”.
+** 2.2 Design your application
+Your application will have a “send” window that allows the user to draw on it (by catching mouse and/or keyboard events) and a “receive” window that will display drawings coming from the other user as they are being drawn. This drawing must at least involve drawing line diagrams and clearing the screen. To implement this functionality you must design several aspects (or layers) of your application, and therefore must answer the following questions: (You are expected to answer these questions in your reports).
+* How will the send-window allow users to draw diagrams?
+How will it display diagrams as they are being drawn, +and how will it retain these diagrams so that they don’t disappear when the window is repainted?+
+* How will you represent the drawing commands so that they can be sent to the other user whilst they are being drawn?
+* How will you serialize these commands into packets to be sent from the send window?
+* How will you use threads to send and receive these packets, while the rest of the application keeps running?
+How will you use mutexes to make any relevant collections “thread-safe”?
+* How will you convert binary packets into a stream of 1’s and 0’s?
+How will you transmit this stream in a reliable way?
+For example, you may need to signal when a bit is ready to be read, and when the receive window has finished reading the current bit.
+* How will you receive and buffer packets at the other end?
+How will you deserialize them?
+How will you draw them on the receive window?
++How will you retain the currently received diagram so that when the window is repainted the diagram isn’t lost?+
+
+* calendar
+** DONE serialization
+CLOSED: [2020-04-16 Thu 21:44]
+
+- State "DONE"       from "TODO"       [2020-04-16 Thu 21:44]
+** DONE vector-serialization
+CLOSED: [2020-04-16 Thu 23:59]
+- State "DONE"       from "TODO"       [2020-04-16 Thu 23:59]
+** DONE toolbar switch draw diagram types
+CLOSED: [2020-04-17 Fri 21:05]
+- State "DONE"       from "TODO"       [2020-04-17 Fri 21:05]
+** STARTED paint receive and send
+One note to realize is all the data transmited are all ought to be bytes. And:
+#+BEGIN_QUOTE
+: How will you transmit this stream in a reliable way?
+#+END_QUOTE
+Given now we can do all of these stuff on one single machine, it would be easier to having the receive/send window inside one program. However, considering practicallality, it would be more usable to having the windows as individual programs, communicating to each other via wireless means.
+But sockets will be what I am going to be using.
+
+
+
+** WAITING thread receive and send 
+- State "WAITING"    from "TODO"       [2020-04-16 Thu 21:44] \\
+  need to come up with a good protocol for receive and send first
+
+* confusion about project questions
+** retain drawn diagram upon window repaint
+
+* bugs
+** serialization, wrong pointer returned
+#+begin_src c++
+printf("hello_world")
+#+end_src
+** serialization vector model
+#+begin_src c++
+struct DrawCmd {
+    uint8_t mode;
+    QPointF p1;
+    QPointF p2;
+};
+#+end_src
+this model will introduces a lot of "overhead" compare to the following model. This helps sending less bytes when user has choosen to draw raw_line continuously, for example a small line might contain ~200 points, the previous model will send 200 mode bytes, and ~400 points becuase two points are required to draw a line. Now we can use ~201 bytes to represent a raw_line draw cmd using vectors.
+#+begin_src c++
+struct DrawCollectionCmd {
+	uint8_t mode;
+	QVector<QPointF> points;
+};
+#+end_src
+
+#+begin_src c++
+uint8_t* serialize(size_t *size) {
+
+	,*size = sizeof(uint8_t) * 2 + sizeof(QPointF) * points.size();
+
+	start_serialize(ret, *size);
+	SERIALIZE(ret, mode);
+	SERIALIZE_byte(ret, (uint8_t)points.size());
+	for (QPointF p: points) {
+		qreal p_x = p.x();
+		qreal p_y = p.y();
+		SERIALIZE(ret, p_x);
+		SERIALIZE(ret, p_y);
+	}
+	end_serialize(ret, *size);
+
+	return ret;
+}
+#+end_src
+
+** multithreading for receive and send
+#+begin_example
+QObject::killTimer: Timers cannot be stopped from another thread
+QObject: Cannot create children for a parent that is in a different thread.
+(Parent is QNativeSocketEngine(0x55a8f7109960), parent's thread is QThread(0x55a8f6fdfbe0), current thread is Socket(0x55a8f70b3a50)
+#+end_example
+** uninitialized gpio pins
+#+begin_example
+get pin: 1 => 1023123123
+get pin: 1 => 1023123123
+...
+get pin: 2 => 1023123123
+get pin: 2 => 1023123123
+...
+#+end_example
+** losing precision in serialization
+#+begin_example
+DrawCmd { 4 0.200000 0.300000 0.200000 0.400000 }
+{0x4 0xffffff9a 0xffffff99 0xffffff99 0xffffff99 0xffffff99 0xffffff99 0xffffffc9 0x3f 0x33 0x33 0x33 0x33 0x33 0x33 0xffffffd3 0x3f 0xffffff9a 0xffffff99 0xffffff99 0xffffff99 0xffffff99 0xffffff99 0xffffffc9 0x3f 0xffffff9a 0xffffff99 0xffffff99 0xffffff99 0xffffff99 0xffffff99 0xffffffd9 0x3f 0 0 0 0 }
+...
+{0x4 0x1a 0x19 0x19 0x19 0x19 0x19 0xffffffc9 0x3f 0x33 0x33 0x33 0x33 0x33 0x33 0xffffffd3 0x3f 0x1a 0x19 0x19 0x19 0x19 0x19 0xffffffc9 0x3f 0x1a 0x19 0x19 0x19 0x19 0x19 0xffffffd9 0x3f 0 0 0 0 0 }
+DrawCmd { 4 0.196078 0.300000 0.196078 0.392157 }
+#+end_example
+
+0xffffff9a = 0b10011010 = 154
+0x1a       = 0b00011010 = 26
+we are missing the sign bit for some reason
+
+#+begin_src c++
+char abyte = 0;
+for (uint i = BYTE_SIZE; i > 0; --i) {
+	loop_until_set(gpio, flagPin);
+	abyte += gpio->getPin(dataPin);
+	//
+	clear_pin(gpio, flagPin);
+	abyte <<= 1;
+}
+return abyte >> 1;
+#+end_src
+#+name fixed
+#+begin_src c++
+char abyte = 0;
+for (uint i = BYTE_SIZE; i > 0; ) {
+	loop_until_set(gpio, flagPin);
+	abyte += (gpio->getPin(dataPin) << (--i));
+	//
+	clear_pin(gpio, flagPin);
+}
+return abyte;
+#+end_src
+** QObject::startTimer: Timers cannot be started from another thread
+jagged send receive
+
+** seperate send and receive thread
+they should be in different thread to prevent "lag". Otherwise, the application will only do sending or receiving, which receiving drawing updates, and will cause deadlock.
+The BitSocket class will be modified so it has bidirectional communication instead of the simplex model it currently have.

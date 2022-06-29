@@ -1,0 +1,28 @@
+(require "3.4.2-controlling-concurrency.rkt")
+
+(define (make-mutex)
+  (let ((cell (list false)))
+    (define (the-mutex m)
+      (cond ((eq? m 'acquire)
+             (if (test-and-set! cell)
+                 (the-mutex 'acquire)   ; retry
+                 true))
+            ((eq? m 'release) (clear! cell))))
+    the-mutex))
+
+(define (make-semaphore n)
+  (let ((mutex (make-mutex))
+        (active 0))
+    (define (acquire)
+      (cond ((< active n)
+             (set! active (+ active 1))
+             (mutex 'release)
+             (mutex 'acquire))
+            (else (mutex 'acquire)
+                  (the-semaphore 'acquire))))    ; retry
+    (define (the-semaphore m)
+      (cond ((eq? m 'acquire) acquire)
+            ((eq? m 'release)
+             (set! active (- active 1))
+             (mutex 'release))))
+    the-semaphore))

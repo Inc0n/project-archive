@@ -1,0 +1,13 @@
+(gerbil-build-deps-v2:
+ (you-get/utils
+  "utils"
+  (gerbil/core
+   gerbil/gambit/ports
+   std/format
+   std/net/request
+   std/pregexp
+   std/sugar))
+ (you-get/common
+  "common"
+  (gerbil/core gerbil/expander std/net/request you-get/utils)))
+

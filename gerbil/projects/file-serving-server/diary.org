@@ -1,0 +1,118 @@
+
+* <2020-08-22 Sat> working on EBNF org parser in gerbil
+  - NOTE potential blogging material
+** TODO list [0/1]
+*** TODO explain my parser more in depth
+    to allow readers to fully understand the article (comparison with EBNF)
+** main body
+  I came to the conclusion that my parser is a bit too low level compare to EBNF
+  For example my form of definition are shown as below
+  #+begin_src gerbil
+  (def-parse-rule (parse-heading-or-bold)
+    (lambda (strm token acc)
+      (def start-of-line? null?)
+       (if (start-of-line? acc)
+         (parse-heading strm acc 1)
+         (parse-bold strm token acc))))
+  #+end_src
+  The following interface expose the underlying character stream, current token, and previous accumulated token in reverse order, which allows the user to do a lot.
+  But compare to EBNF
+  #+begin_src EBNF
+  Heading <- (Level $1) (Status $2) SPC (Text $3) (Content $4)+
+          => ['heading [level: $1 status: $2 title: $3] $4 ...]
+          | (Level $1) (Text $2) (Content $3)+
+          => ['heading [level: $1 title: $2] $3 ...]
+  #+end_src
+  It allows encapsulation of user defined text pattern into a Type, Name, Idea.
+  While my parser is more of character -> tokens
+** conclusion
+   In conclusion, what I like about my parser, is the framework like flexibility that allows for user definition, it can also be almost seen as a DSL, but it is still somewhat restricted to the language that implemented it. Correspondingly, EBNF itself is a small language specific for parser definition, that better connects and translate the patterned text to structured text.
+
+| parsers | method              | parser in relation to text (to be parsed) |
+| mine    | character -> tokens |                                        2d |
+| EBNF    | pattern   -> tokens |                                        3d |
+  
+
+* DONE <2020-08-26 Wed> implementing an +EBNF+ parser in gerbil
+  CLOSED: [2020-08-30 Sun 13:10]
+  - State "DONE"       from "TODO"       [2020-08-30 Sun 13:10]
+    started from EBNF -> normal parser
+    difficulties encountered while implementing the EBNF parser
+* <2020-08-30 Sun> website files org files serving
+** /files home page
+   directing users to different allowed files branch (dir)
+** /files/<dir> page
+   cards like layout, modern website page content layout,
+   1. caching org files on server disk, as it is parsed every single time when visited
+      1. 
+      
+   
+** TODO gibberish issue
+   I was working on a local org-file serving server, and encountered an issue, where my file after parsed into html (using :std/xml) are displayed as gibberish after `http-response-write`.
+   The problem is pinpointed into the following script:
+   #+begin_src gerbil
+   Gerbil v0.16-123-g4b31fde6 on Gambit v4.9.3
+   > (import :std/misc/ports)
+   > (equal?
+    (string->bytes (read-file-string "test.org"))
+    (read-file-u8vector "test.org"))
+   #f
+   #+end_src
+
+   Where `test.org` has the following lines containing serveral non-ascii character
+   #+begin_example
+   * 量杯
+   * yeast
+   * 搅面的工具
+   * 面粉筛子
+   * whisk
+   #+end_example
+   However, if my parsed org-file were to be saved into a file, and later served from the server with `http-response-file`, the text would show up as shown here correctly.
+   I think the character encoding that I should be using is 'GBK', which is not supported right now I don't think, to pass into `string->bytes` to potential fix this issue.
+   Therefore, 
+** TODO gibberish issue take 2
+   I was working on a local org-file serving server, and encountered an issue, where my file after parsed into html (using :std/xml) are displayed as gibberish after `http-response-write`.
+   The easist way to reflect this issue would be as follows:
+   #+begin_src gerbil
+   Gerbil v0.16-123-g4b31fde6 on Gambit v4.9.3
+   > (import :std/misc/ports)
+   > (read-file-u8vector "test.txt")
+   #u8(233 157 162 231 178 137 231 173 155 229 173 144 10)
+   >  (string->bytes (read-file-string "test.txt"))
+   #u8(195 169 194 157 194 162 195 167 194 178 194 137 195 167 194 173 194 155 195 165 194 173 194 144 10)
+   #+end_src
+   Where `test.txt` has the following content containing serveral non-ascii character, a few chinese words about food.
+   #+begin_example
+   面粉筛子
+   #+end_example
+   I think the character encoding that I should be using is 'GBK', which is not supported right now I don't think, to pass into `string->bytes` to potential fix this issue.
+   Ideally, 
+** ISSUE 
+Converting non-ascii string back into raw bytes
+To illustrate my point:
+```
+Gerbil v0.16-123-g4b31fde6 on Gambit v4.9.3
+> (call-with-output-file "test.txt" (cut display "面粉筛子" <>))
+> (import :std/misc/ports)
+> (read-file-u8vector "test.txt")
+#u8(233 157 162 231 178 137 231 173 155 229 173 144 10)
+> (string->bytes (read-file-string "test.txt"))
+#u8(195 169 194 157 194 162 195 167 194 178 194 137 195 167 194 173 194 155 195 165 194 173 194 144 10)
+```
+Clearly these two resulted in two different `u8vector`s. And the string would result in gibberish displayed when setup with my server via `http-response-write` on the user's side, which is why I hope to find a way to convert string to "raw" u8vectors to sovle this issue.
+
+#u8(233 157 162 231 178 137 231 173 155 229 173 144 10 42 42 32 109 101 116 104 111 100 115 10 32 32 32 45 32 229 146 140 233 157 162 229 155 162 10 32 32 32 45 32 229 138 160 230 178 185 10 32 32 32 45 32 233 134 146 233 157 162 228 184 128 229 176 143 230 151 182)
+
+#u8(195 169 194 157 194 162 195 167 194 178 194 137 195 167 194 173 194 155 195 165 194 173 194 144 10 42 42 32 109 101 116 104 111 100 115 10 32 32 32 45 32 195 165 194 146 194 140 195 169 194 157 194 162 195 165 194 155 194 162 10 32 32 32 45 32 195 165 194 138 194 160 195 166 194 178 194 185 10 32 32 32 45 32 195 169 194 134 194 146 195 169 194 157 194 162 195 164 194 184 194 128 195 165 194 176 194 143 195 166 194 151 194 182)
+
+(bytes->string #u8(195 169 194 157 194 162 195 167 194 178 194 137 195 167 194 173 194 155 195 165 194 173 194 144))
+
+```
+> (bytes->string #u8(233 157 162 231 178 137 231 173 155 229 173 144))
+"\x9762;\x7c89;\x7b5b;\x5b50;"
+> "面粉筛子"
+"\xe9;\x9d;\xa2;\xe7;\xb2;\x89;\xe7;\xad;\x9b;\xe5;\xad;\x90;"
+```
+
+* <2020-09-03 Thu> example websites
+  https://kaguya.org/
